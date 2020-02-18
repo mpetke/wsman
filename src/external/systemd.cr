@@ -64,6 +64,26 @@ module Wsman
         status, _ = Wsman::Util.cmd("/bin/systemctl", ["daemon-reload"])
         status == 0
       end
+
+      def solr_instance_start(solr_instance)
+        #TODO
+      end
+
+      def solr_instance_restart(solr_instance)
+        #TODO
+      end
+
+      def solr_instance_stop(solr_instance)
+        #TODO
+      end
+
+      def solr_instance_enable(solr_instance)
+        #TODO
+      end
+
+      def solr_instance_disable(solr_instance)
+        #TODO
+      end
     end
   end
 end

@@ -49,6 +49,11 @@ module Wsman
         template.render(template_values)
       end
 
+      def render_solr_dcompose
+        template = crinja_template("docker-compose-solr.yml.j2")
+        template.render(template_values)
+      end
+
       def dcompose_changed?
         dc_file = File.join(@site_root, @config.docker_compose_filename)
         if File.exists?(dc_file)
@@ -147,6 +152,10 @@ module Wsman
           "php_version" => @siteconf.php_version,
           "extra_hosts" => @siteconf.full_hosts(@site_name),
           "site_root" => File.join("htdocs", @siteconf.site_root || ""),
+          "solr_image" => @config.solr_image,
+          "solr_version" => @siteconf.solr_version,
+          "solr_version_name" => @config.solr_version_name,
+          "solr_container_ip" => "TODO"
         }
       end
     end

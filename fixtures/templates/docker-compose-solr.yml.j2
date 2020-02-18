@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  solr:
+    image: "{{ solr_image }}:{{ solr_version }}"
+    volumes:
+      - /data/solr_cores/{{ solr_version_name }}/cores/:/var/solr/data
+    networks:
+      {{ container_network }}:
+        ipv4_address: {{ solr_container_ip }}
+
+networks:
+  {{ container_network }}:
+    external: true

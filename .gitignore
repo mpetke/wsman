@@ -5,3 +5,7 @@
 *.dwarf
 /config/
 /wsman
+Vagrantfile
+.vagrant/
+
+ubuntu-bionic-18.04-cloudimg-console.log

@@ -2,6 +2,7 @@ require "yaml"
 require "sqlite3"
 
 require "./model/db_config"
+require "./model/solr_core_config"
 
 module Wsman
   class Config
@@ -24,6 +25,8 @@ module Wsman
     DEFAULT_DOCKER_ENVIRONMENT_PREFIX = "wsd-"
     DEFAULT_HOSTING_ENV_FILE = "/etc/wsman-sites/hosting-env"
     DEFAULT_STACK_NAME_CMD = "/opt/stack-name.sh"
+    DEFAULT_SOLR_IMAGE = "solr"
+    DEFAULT_SOLR_DATA_PATH = "/data/solr_cores"
 
     YAML.mapping(
       nginx_conf_dir: {
@@ -105,7 +108,15 @@ module Wsman
       stack_name_cmd: {
         type:    String,
         default: DEFAULT_STACK_NAME_CMD,
-      },
+      }
+      solr_image: {
+        type:    String,
+        default: DEFAULT_SOLR_IMAGE,
+      }
+      solr_data_path: {
+        type:    String,
+        default: DEFAULT_SOLR_DATA_PATH,
+      }
     )
 
     def initialize(config_base)
@@ -129,6 +140,8 @@ module Wsman
       @docker_environment_prefix = DEFAULT_DOCKER_ENVIRONMENT_PREFIX
       @hosting_env_file = DEFAULT_HOSTING_ENV_FILE
       @stack_name_cmd = DEFAULT_STACK_NAME_CMD
+      @solr_image = DEFAULT_SOLR_IMAGE
+      @solr_data_path = DEFAULT_SOLR_DATA_PATH
     end
   end
 
@@ -150,6 +163,7 @@ module Wsman
       unless File.exists?(@db_path)
         init_db
       end
+      Dir.mkdir_p(@solr_data_path) unless Dir.exists?(@solr_data_path)
       @wsman_version = "0.1"
     end
 
@@ -180,7 +194,7 @@ module Wsman
           end
         end
         if ip_id.nil?
-          db.query "SELECT rowid, ip FROM ips WHERE rowid NOT IN (SELECT ip_id FROM sites) ORDER BY rowid LIMIT 1" do |rs|
+          db.query "SELECT rowid, ip FROM ips WHERE rowid NOT IN (SELECT ip_id FROM sites UNION SELECT ip_id FROM solr_instances) ORDER BY rowid LIMIT 1" do |rs|
             rs.each do
               ip_id = rs.read(Int32)
               ip = rs.read(String)
@@ -372,6 +386,8 @@ module Wsman
         db.exec "create table sites (name text PRIMARY KEY, ip_id integer)"
         db.exec "create table ips (ip text)"
         db.exec "create table dbs (site_id integer, confname text, dbname text, username text, password text)"
+        db.exec "create table solr_instances (version text PRIMARY KEY, ip_id integer)"
+        db.exec "create table solr_cores (corename text PRIMARY KEY, site_id integer, confname text, solr_instance_id integer)"
 
         insert_ips = Array(String).new
         (1..254).each do |x|

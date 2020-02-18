@@ -15,13 +15,15 @@ module Wsman
       @systemd = Wsman::External::Systemd.new(@config)
       @awslogs = Wsman::External::Awslogs.new(@config)
       @mysql = Wsman::External::Mysql.new(@config)
+      @solr = Wsman::External::Solr.new(@config)
       @log = Logger.new(STDOUT)
       @site_manager = Wsman::SiteManager.new(@config)
     end
 
     def prepare_env
-      @log.info("Deploying systemd service: #{@config.template_service_name}...")
+      @log.info("Deploying systemd services: #{@config.template_service_name}...")
       @systemd.deploy_service(File.join(@config.fixtures_dir, "systemd", "#{@config.template_service_name}@.service"))
+      @systemd.deploy_service(File.join(@config.fixtures_dir, "systemd", "solr@.service"))
       @log.info("Reloading systemd configuration...")
       @systemd.daemon_reload
       @log.info("Deploying nginx includes...")
@@ -71,6 +73,31 @@ module Wsman
               @log.error("    Error saving configuration for #{db}!")
             end
           end
+        end
+        if !site.siteconf.solr_cores.empty?
+          @log.info("  Check solr config...")
+          solr_version = site.siteconf.solr_version
+          if solr_version.empty?
+              @log.error("    The solrCores added in the site.yml, but the solrVersion is missing!")
+          else
+            if @config.has_solr_container?(solr_version)
+              @log.info("    The solr container with version '#{solr_version}'' already exists.")
+            else
+              @log.info("    The solr container with version '#{solr_version}' doesn't exist, creating...")
+              @solr.create_container(solr_version, site.render_solr_dcompose)
+            end
+            solr_cores = @config.get_solr_cores(site_name)
+            site.siteconf.solr_cores.each do |core|
+              if @config.solr_core_exists?(solr_cores, core)
+                @log.info("    #{core} already exists.")
+              else
+                @log.info("    #{core} doesn't exist, creating...")
+                @solr.create_core(solr_version, core)
+              end
+            end
+          end
+        else
+          @log.info("  The site not uses solr.")
         end
         new_env = site.render_site_env
         if @config.env_changed?(site_name, new_env)

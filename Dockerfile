@@ -1,8 +1,8 @@
 FROM alpine:3.10
 
 RUN echo '@edge http://dl-cdn.alpinelinux.org/alpine/edge/community' >>/etc/apk/repositories \
-    && apk add --update --no-cache --force-overwrite \
-        crystal@edge \
+    && apk add --update --no-cache --force-overwrite --force \
+        crystal \
         g++ \
         gc-dev \
         libevent-dev \
