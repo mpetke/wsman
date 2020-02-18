@@ -65,24 +65,29 @@ module Wsman
         status == 0
       end
 
-      def solr_instance_start(solr_instance)
-        #TODO
+      def solr_instance_start(solr_version_name)
+        status, _ = Wsman::Util.cmd("/bin/systemctl", ["start", "solr@#{solr_version_name}"])
+        status == 0
       end
 
-      def solr_instance_restart(solr_instance)
-        #TODO
+      def solr_instance_restart(solr_version_name)
+        status, _ = Wsman::Util.cmd("/bin/systemctl", ["restart", "solr@#{solr_version_name}"])
+        status == 0
       end
 
-      def solr_instance_stop(solr_instance)
-        #TODO
+      def solr_instance_stop(solr_version_name)
+        status, _ = Wsman::Util.cmd("/bin/systemctl", ["stop", "solr@#{solr_version_name}"])
+        status == 0
       end
 
-      def solr_instance_enable(solr_instance)
-        #TODO
+      def solr_instance_enable(solr_version_name)
+        status, _ = Wsman::Util.cmd("/bin/systemctl", ["enable", "solr@#{solr_version_name}"])
+        status == 0
       end
 
-      def solr_instance_disable(solr_instance)
-        #TODO
+      def solr_instance_disable(solr_version_name)
+        status, _ = Wsman::Util.cmd("/bin/systemctl", ["disable", "solr@#{solr_version_name}", "--now"]])
+        status == 0
       end
     end
   end
