@@ -108,11 +108,11 @@ module Wsman
       stack_name_cmd: {
         type:    String,
         default: DEFAULT_STACK_NAME_CMD,
-      }
+      },
       solr_image: {
         type:    String,
         default: DEFAULT_SOLR_IMAGE,
-      }
+      },
       solr_data_path: {
         type:    String,
         default: DEFAULT_SOLR_DATA_PATH,
@@ -163,7 +163,7 @@ module Wsman
       unless File.exists?(@db_path)
         init_db
       end
-      Dir.mkdir_p(@solr_data_path) unless Dir.exists?(@solr_data_path)
+      Dir.mkdir_p(@config.solr_data_path) unless Dir.exists?(@config.solr_data_path)
       @wsman_version = "0.1"
     end
 
@@ -184,11 +184,11 @@ module Wsman
       @config.web_root_dir
     end
 
-    def container_ip(instance_name, db_table)
+    def container_ip(instance_name, instance_db_table)
       ip_id = nil
       ip = nil
       DB.open "sqlite3://#{@db_path}" do |db|
-        db.query "SELECT ip_id FROM ? WHERE name = ?", db_table, instance_name do |rs|
+        db.query "SELECT ip_id FROM #{instance_db_table} WHERE name = ?", instance_name do |rs|
           rs.each do
             ip_id = rs.read(Int32)
           end
@@ -200,8 +200,8 @@ module Wsman
               ip = rs.read(String)
             end
           end
-          db.exec "INSERT OR IGNORE INTO ? (name) VALUES (?)", db_table, instance_name
-          db.exec "UPDATE db_table SET ip_id = ? WHERE name = ?", db_table, ip_id, instance_name
+          db.exec "INSERT OR IGNORE INTO #{instance_db_table} (name) VALUES (?)", instance_name
+          db.exec "UPDATE #{instance_db_table} SET ip_id = ? WHERE name = ?", ip_id, instance_name
         else
           db.query "SELECT ip FROM ips WHERE rowid = ?", ip_id do |rs|
             rs.each do
@@ -312,6 +312,14 @@ module Wsman
       solr_core_names.includes? corename
     end
 
+    def solr_version_name(solr_version)
+      solr_version_name=""
+      if solr_version
+        solr_version_name = solr_version.gsub(/[^0-9a-z]/i, '_')
+      end
+      solr_version_name
+    end
+
     def container_subnet
       @config.container_subnet
     end
@@ -385,6 +393,14 @@ module Wsman
 
     def hosting_env_file
       @config.hosting_env_file
+    end
+
+    def solr_image
+      @config.solr_image
+    end
+
+    def solr_data_path
+      @config.solr_data_path
     end
 
     def save

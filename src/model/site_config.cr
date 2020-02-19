@@ -60,6 +60,7 @@ module Wsman
           nilable: true,
           default: DEFAULT_SOLR_CORES,
           setter:  false,
+        }
       )
 
       def initialize

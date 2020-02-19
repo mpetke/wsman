@@ -86,7 +86,7 @@ module Wsman
       end
 
       def solr_instance_disable(solr_version_name)
-        status, _ = Wsman::Util.cmd("/bin/systemctl", ["disable", "solr@#{solr_version_name}", "--now"]])
+        status, _ = Wsman::Util.cmd("/bin/systemctl", ["disable", "solr@#{solr_version_name}", "--now"])
         status == 0
       end
     end

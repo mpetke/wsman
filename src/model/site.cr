@@ -140,7 +140,7 @@ module Wsman
           "site_name" => site_name,
           "container_ip" => "#{@config.container_ip(@site_name, "sites")}",
           "phpfpm_port" => @config.phpfpm_port,
-          "gen_time" => Time.now,
+          "gen_time" => Time.local,
           "wsman_version" => @config.wsman_version,
           "cert_path" => cert_path,
           "cert_key_path" => cert_key_path,
@@ -154,8 +154,8 @@ module Wsman
           "site_root" => File.join("htdocs", @siteconf.site_root || ""),
           "solr_image" => @config.solr_image,
           "solr_version" => @siteconf.solr_version,
-          "solr_version_name" => @config.solr_version_name,
-          "solr_container_ip" => "TODO"
+          "solr_version_name" => @config.solr_version_name(@siteconf.solr_version),
+          "solr_container_ip" => @config.container_ip(@siteconf.solr_version, "solr_instances"),
         }
       end
     end

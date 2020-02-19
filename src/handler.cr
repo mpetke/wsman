@@ -4,6 +4,7 @@ require "./external/nginx"
 require "./external/systemd"
 require "./external/awslogs"
 require "./external/mysql"
+require "./external/solr"
 
 module Wsman
   class Handler
@@ -74,20 +75,21 @@ module Wsman
             end
           end
         end
-        if !site.siteconf.solr_cores.empty?
+        solr_cores = site.siteconf.solr_cores
+        if !solr_cores.nil?
           @log.info("  Check solr config...")
           solr_version = site.siteconf.solr_version
-          if solr_version.empty?
+          if solr_version.nil?
               @log.error("    The solrCores added in the site.yml, but the solrVersion is missing!")
           else
             if @config.has_solr_container?(solr_version)
               @log.info("    The solr container with version '#{solr_version}'' already exists.")
             else
               @log.info("    The solr container with version '#{solr_version}' doesn't exist, creating...")
-              @solr.create_container(solr_version, site.render_solr_dcompose)
             end
+            @solr.create_or_update_container(solr_version, site.render_solr_dcompose)            
             solr_cores = @config.get_solr_cores(site_name)
-            site.siteconf.solr_cores.each do |core|
+            solr_cores.each do |core|
               if @config.solr_core_exists?(solr_cores, core)
                 @log.info("    #{core} already exists.")
               else
