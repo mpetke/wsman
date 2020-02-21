@@ -289,7 +289,7 @@ module Wsman
       ! get_solr_instance_id(solr_version).nil?
     end
 
-    def get_solr_cores(site_name)
+    def get_solr_cores_from_db(site_name)
         solr_cores = Array(Wsman::Model::SolrCoreConfig).new
         DB.open "sqlite3://#{@db_path}" do |db|
           site_id = db_site_id(db, site_name)
@@ -307,9 +307,22 @@ module Wsman
         solr_cores
     end
 
-    def solr_core_exists?(solr_cores, corename)
-      solr_core_names = solr_cores.map { |c| c.corename }
-      solr_core_names.includes? corename
+    def add_solr_config_to_db(confname, site_name, solr_version)
+      confname = confname.upcase
+      corename = generate_solr_corename(confname, site_name)
+      DB.open "sqlite3://#{@db_path}" do |db|
+        site_id = db_site_id(db, site_name)
+        solr_instance_id = get_solr_instance_id(solr_version)
+        db.exec "INSERT OR IGNORE INTO solr_cores (corename, site_id, confname, solr_instance_id) "\
+                "VALUES (?, ?, ?, ?)", corename, site_id, confname, solr_instance_id
+      end
+      corename
+    end
+
+    def solr_core_exists?(solr_cores, confname)
+      confname = confname.upcase
+      solr_core_names = solr_cores.map { |c| c.confname }
+      solr_core_names.includes? confname
     end
 
     def solr_version_name(solr_version)
@@ -318,6 +331,10 @@ module Wsman
         solr_version_name = solr_version.gsub(/[^0-9a-z]/i, '_')
       end
       solr_version_name
+    end
+
+    def generate_solr_corename(confname, site_name)
+      "#{confname}_#{site_name.gsub('-', '_').gsub('.', '_')}"
     end
 
     def container_subnet

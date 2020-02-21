@@ -6,3 +6,11 @@ WS_DB_{{ db.confname }}_PASS={{ db.password }}
 {% endfor %}
 SMTP_USERNAME=
 SMTP_PASSWORD=
+{% if solr_container_ip %}
+WS_SOLR_HOST={{ solr_container_ip }}
+{% endif %}
+{% if solr_cores %}
+{% for solr_core in solr_cores %}
+WS_SOLR_CORE_{{ solr_core.confname }}_NAME={{ solr_core.corename }}
+{% endfor %}
+{% endif %}

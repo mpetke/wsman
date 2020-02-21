@@ -14,6 +14,7 @@ module Wsman
       DIR_TEMPLATES = "ws-template"
       DIR_CONFIG = "ws-config"
       SITECONF_FILE = "site.yml"
+      DIR_SOLR_CORES = "solr-cores"
 
       def initialize(@config : Wsman::ConfigManager, @site_name : String)
         @site_root = File.join(@config.web_root_dir, site_name)
@@ -66,6 +67,15 @@ module Wsman
 
       def save_dcompose
         File.write(File.join(@site_root, @config.docker_compose_filename), render_dcompose)
+      end
+
+      def solr_core_config_zip(confname)
+        solr_core_conf_zip = File.join(@site_root, DIR_CONFIG, DIR_SOLR_CORES, "#{confname}.zip")
+        if File.exists?(solr_core_conf_zip)
+          solr_core_conf_zip
+        else
+          nil
+        end
       end
 
       def has_valid_cert?
@@ -156,6 +166,7 @@ module Wsman
           "solr_version" => @siteconf.solr_version,
           "solr_version_name" => @config.solr_version_name(@siteconf.solr_version),
           "solr_container_ip" => @config.container_ip(@siteconf.solr_version, "solr_instances"),
+          "solr_cores" => @config.get_solr_cores_from_db(@site_name)
         }
       end
     end
