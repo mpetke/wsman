@@ -4,7 +4,6 @@ require "./external/nginx"
 require "./external/systemd"
 require "./external/awslogs"
 require "./external/mysql"
-require "./external/solr"
 
 module Wsman
   class Handler
@@ -16,7 +15,6 @@ module Wsman
       @systemd = Wsman::External::Systemd.new(@config)
       @awslogs = Wsman::External::Awslogs.new(@config)
       @mysql = Wsman::External::Mysql.new(@config)
-      @solr = Wsman::External::Solr.new(@config)
       @log = Logger.new(STDOUT)
       @site_manager = Wsman::SiteManager.new(@config)
     end
@@ -88,7 +86,17 @@ module Wsman
             else
               @log.info("    The solr container with version '#{solr_version}' doesn't exist, creating...")
             end
-            @solr.create_or_update_container(solr_version, site.render_solr_dcompose)
+            @config.create_or_update_solr_container(solr_version, site.render_solr_dcompose)
+            if @systemd.solr_instance_enable(@config.solr_version_name(solr_version))
+              @log.info("  The solr instance container has been enabled.")
+            else
+              @log.error("  Error when enabling solr instance container!")
+            end
+            if @systemd.solr_instance_start(@config.solr_version_name(solr_version))
+              @log.info("  The solr instance container has been started.")
+            else
+              @log.error("  Error when starting solr instance container!")
+            end
             db_solr_cores = @config.get_solr_cores_from_db(site_name)
             solr_cores.each do |confname|
               if @config.solr_core_exists?(db_solr_cores, confname)
@@ -100,7 +108,12 @@ module Wsman
                   corename = @config.add_solr_config_to_db(confname, site_name, solr_version)
                   if !corename.nil?
                     @log.info("    #{confname} configuration has been saved.")
-                    @solr.create_core(solr_version, corename, solr_core_config_zip)
+                    @config.create_solr_core(solr_version, corename, solr_core_config_zip)
+                    if @systemd.solr_instance_restart(@config.solr_version_name(solr_version))
+                      @log.info("  The solr instance container has been restarted.")
+                    else
+                      @log.error("  Error when restart solr instance container!")
+                    end
                   else
                     @log.error("    Error saving configuration for #{confname}!")
                   end

@@ -333,6 +333,56 @@ module Wsman
       solr_version_name
     end
 
+    def create_or_update_solr_container(solr_version, dcompose)
+      if solr_dcompose_changed?(solr_version, dcompose)
+        cores_path = solr_cores_path_by_version(solr_version)
+        Dir.mkdir_p(cores_path)
+        File.chown(cores_path, uid: 8983, gid: 8983)
+        save_solr_dcompose(solr_version, dcompose)
+      end
+    end
+
+    def create_solr_core(solr_version, corename, solr_core_config_zip)
+      core_path = solr_cores_path_by_version(solr_version)
+      core_conf_path = File.join(core_path, corename, "conf")
+      Dir.mkdir_p(core_conf_path)
+      Wsman::Util.cmd("unzip", ["-o", solr_core_config_zip, "-d", core_conf_path])
+      File.write(File.join(core_conf_path, "..", "core.properties"), "name=#{corename}")
+      Dir["#{core_path}/**/*"].each do |path|
+        File.chown(path, uid: 8983, gid: 8983)
+      end
+    end
+
+    def solr_dcompose_changed?(solr_version, dcompose)
+      dc_file = solr_dcompose_file(solr_version)
+      if File.exists?(dc_file)
+        current_dc = File.read(dc_file)
+        dcompose != current_dc
+      else
+        true
+      end
+    end
+
+    def save_solr_dcompose(solr_version, dcompose)
+      File.write(solr_dcompose_file(solr_version), dcompose)
+    end
+
+    def solr_dcompose_file(solr_version)
+      File.join(solr_data_path, solr_version_name(solr_version), docker_compose_filename)
+    end
+
+    def solr_cores_path_by_version(solr_version)
+      File.join(solr_data_path, solr_version_name(solr_version), "cores")
+    end
+
+    def delete_solr_core()
+      #TODO
+    end
+
+    def delete_solr_instance()
+      #TODO
+    end
+
     def generate_solr_corename(confname, site_name)
       "#{confname}_#{site_name.gsub('-', '_').gsub('.', '_')}"
     end
