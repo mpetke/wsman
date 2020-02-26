@@ -11,6 +11,6 @@ WS_SOLR_HOST={{ solr_container_ip }}
 {% endif %}
 {% if solr_cores %}
 {% for solr_core in solr_cores %}
-WS_SOLR_CORE_{{ solr_core.confname }}_NAME={{ solr_core.corename }}
+WS_SOLR_CORE_{{ solr_core.confname.upcase }}_NAME={{ solr_core.corename }}
 {% endfor %}
 {% endif %}

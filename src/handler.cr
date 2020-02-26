@@ -88,19 +88,21 @@ module Wsman
             end
             @config.create_or_update_solr_container(solr_version, site.render_solr_dcompose)
             if @systemd.solr_instance_enable(@config.solr_version_name(solr_version))
-              @log.info("  The solr instance container has been enabled.")
+              @log.info("    The solr instance container has been enabled.")
             else
-              @log.error("  Error when enabling solr instance container!")
+              @log.error("    Error when enabling solr instance container!")
             end
             if @systemd.solr_instance_start(@config.solr_version_name(solr_version))
-              @log.info("  The solr instance container has been started.")
+              @log.info("    The solr instance container has been started.")
             else
-              @log.error("  Error when starting solr instance container!")
+              @log.error("    Error when starting solr instance container!")
             end
             db_solr_cores = @config.get_solr_cores_from_db(site_name)
             solr_cores.each do |confname|
-              if @config.solr_core_exists?(db_solr_cores, confname)
-                @log.info("    #{confname} core already exists.")
+              solr_corename = @config.generate_solr_corename(confname, site_name)
+              if @config.solr_core_exists?(db_solr_cores, solr_corename)
+                @config.update_solr_core_site_id(site_name, solr_corename)
+                @log.info("    #{confname} core already exists, site id updated")
               else
                 @log.info("    #{confname} core doesn't exist, creating...")
                 solr_core_config_zip = site.solr_core_config_zip(confname)
@@ -110,9 +112,9 @@ module Wsman
                     @log.info("    #{confname} configuration has been saved.")
                     @config.create_solr_core(solr_version, corename, solr_core_config_zip)
                     if @systemd.solr_instance_restart(@config.solr_version_name(solr_version))
-                      @log.info("  The solr instance container has been restarted.")
+                      @log.info("    The solr instance container has been restarted.")
                     else
-                      @log.error("  Error when restart solr instance container!")
+                      @log.error("    Error when restart solr instance container!")
                     end
                   else
                     @log.error("    Error saving configuration for #{confname}!")
@@ -173,6 +175,28 @@ module Wsman
 
     def cleanup(site_name)
       @log.info("Cleaning up #{site_name}.")
+      solr_cores = @config.get_solr_cores_from_db(site_name)
+      if !solr_cores.empty?
+        @log.info("  Start to remove Solr cores...")
+        solr_version = solr_cores.first.solr_version
+        solr_version_name = @config.solr_version_name(solr_version)
+        @config.delete_solr_cores(solr_cores)
+        @log.info("   Solr core removed from solr instance")
+        if @systemd.solr_instance_restart(solr_version_name)
+          @log.info("   The solr instance container has been restarted.")
+        else
+          @log.error("   Error when enabling solr instance container!")
+        end
+        @config.remove_solr_cores_from_db(site_name)
+        @log.info("   Solr core removed from database")
+        if ! @config.solr_instance_has_cores?(solr_cores.first.solr_instance_id)
+          @systemd.solr_instance_disable(solr_version_name)
+          @config.remove_solr_instance_from_db(solr_version)
+          @log.info("   Solr instance removed from db")
+          @config.delete_solr_instance(solr_version)
+          @log.info("   Solr instance removed")
+        end
+      end
       @systemd.site_disable_now(site_name)
       databases = @config.get_db_config(site_name)
       @mysql.delete_databases(databases)

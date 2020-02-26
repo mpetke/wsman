@@ -295,12 +295,14 @@ module Wsman
           site_id = db_site_id(db, site_name)
           return solr_cores unless site_id
 
-          db.query "SELECT sc.corename,sc.confname,si.name FROM solr_cores sc LEFT JOIN solr_instances si WHERE sc.site_id = ?", site_id do |rs|
+          db.query "SELECT sc.rowid,sc.solr_instance_id,sc.corename,sc.confname,si.name FROM solr_cores sc LEFT JOIN solr_instances si WHERE sc.site_id = ?", site_id do |rs|
             rs.each do
+              core_id = rs.read(Int32)
+              solr_instance_id = rs.read(Int32)
               corename = rs.read(String)
               confname = rs.read(String)
               solr_version = rs.read(String)
-              solr_cores << Wsman::Model::SolrCoreConfig.new(corename, confname, solr_version)
+              solr_cores << Wsman::Model::SolrCoreConfig.new(core_id, solr_instance_id, corename, confname, solr_version)
             end
           end
         end
@@ -308,7 +310,6 @@ module Wsman
     end
 
     def add_solr_config_to_db(confname, site_name, solr_version)
-      confname = confname.upcase
       corename = generate_solr_corename(confname, site_name)
       DB.open "sqlite3://#{@db_path}" do |db|
         site_id = db_site_id(db, site_name)
@@ -319,10 +320,16 @@ module Wsman
       corename
     end
 
-    def solr_core_exists?(solr_cores, confname)
-      confname = confname.upcase
-      solr_core_names = solr_cores.map { |c| c.confname }
-      solr_core_names.includes? confname
+    def update_solr_core_site_id(site_name, corename)
+      DB.open "sqlite3://#{@db_path}" do |db|
+        site_id = db_site_id(db, site_name)
+        db.exec "UPDATE solr_cores SET site_id = ? WHERE corename = ?", site_id, corename
+      end
+    end
+
+    def solr_core_exists?(solr_cores, corename)
+      solr_core_names = solr_cores.map { |c| c.corename }
+      solr_core_names.includes? corename
     end
 
     def solr_version_name(solr_version)
@@ -343,12 +350,12 @@ module Wsman
     end
 
     def create_solr_core(solr_version, corename, solr_core_config_zip)
-      core_path = solr_cores_path_by_version(solr_version)
-      core_conf_path = File.join(core_path, corename, "conf")
+      cores_path = solr_cores_path_by_version(solr_version)
+      core_conf_path = File.join(cores_path, corename, "conf")
       Dir.mkdir_p(core_conf_path)
       Wsman::Util.cmd("unzip", ["-o", solr_core_config_zip, "-d", core_conf_path])
       File.write(File.join(core_conf_path, "..", "core.properties"), "name=#{corename}")
-      Dir["#{core_path}/**/*"].each do |path|
+      Dir["#{cores_path}/**/*"].each do |path|
         File.chown(path, uid: 8983, gid: 8983)
       end
     end
@@ -375,16 +382,47 @@ module Wsman
       File.join(solr_data_path, solr_version_name(solr_version), "cores")
     end
 
-    def delete_solr_core()
-      #TODO
+    def delete_solr_cores(solr_cores)
+      solr_cores.each do |solr_core|
+        cores_path = solr_cores_path_by_version(solr_core.solr_version)
+        core_path = File.join(cores_path, solr_core.corename)
+        Wsman::Util.remove_file(core_path)
+      end
     end
 
-    def delete_solr_instance()
-      #TODO
+    def delete_solr_instance(solr_version)
+      solr_version_path = File.join(solr_data_path, solr_version_name(solr_version))
+      Wsman::Util.remove_file(solr_version_path)
+    end
+
+    def remove_solr_cores_from_db(site_name)
+      DB.open "sqlite3://#{@db_path}" do |db|
+        site_id = db_site_id(db, site_name)
+        db.exec "DELETE FROM solr_cores WHERE site_id = ?", site_id
+      end
+    end
+
+    def remove_solr_instance_from_db(solr_version)
+      DB.open "sqlite3://#{@db_path}" do |db|
+        solr_instance_id = get_solr_instance_id(solr_version)
+        db.exec "DELETE FROM solr_instances WHERE rowid = ?", solr_instance_id
+      end
+    end
+
+    def solr_instance_has_cores?(solr_instance_id)
+      instance_id = nil
+      DB.open "sqlite3://#{@db_path}" do |db|
+        db.query "SELECT rowid FROM solr_cores WHERE solr_instance_id = ?", solr_instance_id do |rs|
+          rs.each do
+            instance_id = rs.read(Int32)
+          end
+        end
+      end
+      !instance_id.nil?
     end
 
     def generate_solr_corename(confname, site_name)
-      "#{confname}_#{site_name.gsub('-', '_').gsub('.', '_')}"
+      "#{confname.upcase}_#{site_name.gsub('-', '_').gsub('.', '_')}"
     end
 
     def container_subnet
