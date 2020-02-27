@@ -74,7 +74,7 @@ module Wsman
           end
         end
         solr_cores = site.siteconf.solr_cores
-        if !solr_cores.nil?
+        if !solr_cores.empty?
           @log.info("  Check solr config...")
           solr_version = site.siteconf.solr_version
           if solr_version.nil?
@@ -82,7 +82,7 @@ module Wsman
           else
             @log.info("    Check config zip-s...")
             if @config.has_solr_container?(solr_version)
-              @log.info("    The solr container with version '#{solr_version}'' already exists.")
+              @log.info("    The solr container with version '#{solr_version}' already exists.")
             else
               @log.info("    The solr container with version '#{solr_version}' doesn't exist, creating...")
             end

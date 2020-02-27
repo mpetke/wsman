@@ -187,6 +187,7 @@ module Wsman
     def container_ip(instance_name, instance_db_table)
       ip_id = nil
       ip = nil
+      return ip unless instance_name
       DB.open "sqlite3://#{@db_path}" do |db|
         db.query "SELECT ip_id FROM #{instance_db_table} WHERE name = ?", instance_name do |rs|
           rs.each do
@@ -302,7 +303,7 @@ module Wsman
               corename = rs.read(String)
               confname = rs.read(String)
               solr_version = rs.read(String)
-              solr_cores << Wsman::Model::SolrCoreConfig.new(core_id, solr_instance_id, corename, confname, solr_version)
+              solr_cores << Wsman::Model::SolrCoreConfig.new(core_id, solr_instance_id, corename, confname.upcase, solr_version)
             end
           end
         end

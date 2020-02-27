@@ -57,7 +57,7 @@ module Wsman
         solr_cores: {
           type:    Array(String),
           key:     "solrCores",
-          nilable: true,
+          nilable: false,
           default: DEFAULT_SOLR_CORES,
           setter:  false,
         }
