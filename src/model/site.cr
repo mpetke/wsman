@@ -69,10 +69,10 @@ module Wsman
         File.write(File.join(@site_root, @config.docker_compose_filename), render_dcompose)
       end
 
-      def solr_core_config_zip(confname)
-        solr_core_conf_zip = File.join(@site_root, DIR_CONFIG, DIR_SOLR_CORES, "#{confname}.zip")
-        if File.exists?(solr_core_conf_zip)
-          solr_core_conf_zip
+      def solr_core_config_dir(confname)
+        solr_core_conf_dir = File.join(@site_root, DIR_CONFIG, DIR_SOLR_CORES, confname, "conf")
+        if File.exists?(solr_core_conf_dir)
+          solr_core_conf_dir
         else
           nil
         end

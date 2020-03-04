@@ -350,12 +350,12 @@ module Wsman
       end
     end
 
-    def create_solr_core(solr_version, corename, solr_core_config_zip)
+    def create_solr_core(solr_version, corename, solr_core_config_dir)
       cores_path = solr_cores_path_by_version(solr_version)
-      core_conf_path = File.join(cores_path, corename, "conf")
+      core_conf_path = File.join(cores_path, corename)
       Dir.mkdir_p(core_conf_path)
-      Wsman::Util.cmd("unzip", ["-o", solr_core_config_zip, "-d", core_conf_path])
-      File.write(File.join(core_conf_path, "..", "core.properties"), "name=#{corename}")
+      Wsman::Util.cmd("cp", ["-rp", solr_core_config_dir, core_conf_path])
+      File.write(File.join(core_conf_path, "core.properties"), "name=#{corename}")
       Dir["#{cores_path}/**/*"].each do |path|
         File.chown(path, uid: 8983, gid: 8983)
       end
