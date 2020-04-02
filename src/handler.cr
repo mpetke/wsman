@@ -73,59 +73,63 @@ module Wsman
             end
           end
         end
-        solr_cores = site.siteconf.solr_cores
-        if !solr_cores.empty?
-          @log.info("  Check solr config...")
-          solr_version = site.siteconf.solr_version
-          if solr_version.nil?
-              @log.error("    The solrCores added in the site.yml, but the solrVersion is missing!")
-          else
-            if @config.has_solr_container?(solr_version)
-              @log.info("    The solr container with version '#{solr_version}' already exists.")
+        if !site.skip_solr
+          solr_cores = site.siteconf.solr_cores
+          if !solr_cores.empty?
+            @log.info("  Check Solr config...")
+            solr_version = site.siteconf.solr_version
+            if solr_version.nil?
+                @log.error("    The solrCores added in the site.yml, but the solrVersion is missing!")
             else
-              @log.info("    The solr container with version '#{solr_version}' doesn't exist, creating...")
-            end
-            @config.create_or_update_solr_container(solr_version, site.render_solr_dcompose)
-            if @systemd.solr_instance_enable(@config.solr_version_name(solr_version))
-              @log.info("    The solr instance container has been enabled.")
-            else
-              @log.error("    Error when enabling solr instance container!")
-            end
-            if @systemd.solr_instance_start(@config.solr_version_name(solr_version))
-              @log.info("    The solr instance container has been started.")
-            else
-              @log.error("    Error when starting solr instance container!")
-            end
-            db_solr_cores = @config.get_solr_cores_from_db(site_name)
-            solr_cores.each do |confname|
-              solr_corename = @config.generate_solr_corename(confname, site_name)
-              if @config.solr_core_exists?(db_solr_cores, solr_corename)
-                @config.update_solr_core_site_id(site_name, solr_corename)
-                @log.info("    #{confname} core already exists, site id updated")
+              if @config.has_solr_container?(solr_version)
+                @log.info("    The Solr container with version '#{solr_version}' already exists.")
               else
-                @log.info("    #{confname} core doesn't exist, creating...")
-                solr_core_config_dir = site.solr_core_config_dir(confname)
-                if !solr_core_config_dir.nil?
-                  corename = @config.add_solr_config_to_db(confname, site_name, solr_version)
-                  if !corename.nil?
-                    @log.info("    #{confname} configuration has been saved.")
-                    @config.create_solr_core(solr_version, corename, solr_core_config_dir)
-                    if @systemd.solr_instance_restart(@config.solr_version_name(solr_version))
-                      @log.info("    The solr instance container has been restarted.")
+                @log.info("    The Solr container with version '#{solr_version}' doesn't exist, creating...")
+              end
+              @config.create_or_update_solr_container(solr_version, site.render_solr_dcompose)
+              if @systemd.solr_instance_enable(@config.solr_version_name(solr_version))
+                @log.info("    The Solr instance container has been enabled.")
+              else
+                @log.error("    Error when enabling Solr instance container!")
+              end
+              if @systemd.solr_instance_start(@config.solr_version_name(solr_version))
+                @log.info("    The Solr instance container has been started.")
+              else
+                @log.error("    Error when starting Solr instance container!")
+              end
+              db_solr_cores = @config.get_solr_cores_from_db(site_name)
+              solr_cores.each do |confname|
+                solr_corename = @config.generate_solr_corename(confname, site_name)
+                if @config.solr_core_exists?(db_solr_cores, solr_corename)
+                  @config.update_solr_core_site_id(site_name, solr_corename)
+                  @log.info("    #{confname} core already exists, site id updated")
+                else
+                  @log.info("    #{confname} core doesn't exist, creating...")
+                  solr_core_config_dir = site.solr_core_config_dir(confname)
+                  if !solr_core_config_dir.nil?
+                    corename = @config.add_solr_config_to_db(confname, site_name, solr_version)
+                    if !corename.nil?
+                      @log.info("    #{confname} configuration has been saved.")
+                      @config.create_solr_core(solr_version, corename, solr_core_config_dir)
+                      if @systemd.solr_instance_restart(@config.solr_version_name(solr_version))
+                        @log.info("    The Solr instance container has been restarted.")
+                      else
+                        @log.error("    Error when restart Solr instance container!")
+                      end
                     else
-                      @log.error("    Error when restart solr instance container!")
+                      @log.error("    Error saving configuration for #{confname}!")
                     end
                   else
-                    @log.error("    Error saving configuration for #{confname}!")
+                    @log.error("    The Solr config #{confname}'s directory not found!")
                   end
-                else
-                  @log.error("    The solr config #{confname}'s directory not found!")
                 end
               end
             end
+          else
+            @log.info("  The site not uses Solr.")
           end
         else
-          @log.info("  The site not uses solr.")
+          @log.info("  Solr core install skipped.")
         end
         new_env = site.render_site_env
         if @config.env_changed?(site_name, new_env)

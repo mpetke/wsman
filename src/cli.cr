@@ -43,7 +43,8 @@ module Wsman
         sub "setup" do
           desc "Generate site configurations for the given site."
           usage "setup [options] <sitename>"
-          run do |_opts, args|
+          option "--skip-solr", type: Bool, desc: "Skip Solr core install, even if it's configured.", default: false
+          run do |opts, args|
             log = Logger.new(STDOUT)
             if args.size == 0
               log.info("Please list sites to process.")
@@ -53,6 +54,7 @@ module Wsman
             handler.prepare_env
             handler.site_manager.sites.each do |site|
               if args.includes? site.site_name
+                site.skip_solr = opts.skip_solr
                 handler.process_site(site)
               end
             end

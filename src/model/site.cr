@@ -10,6 +10,8 @@ module Wsman
     class Site
       getter site_name
       getter siteconf
+      getter skip_solr
+      setter skip_solr
 
       DIR_TEMPLATES = "ws-template"
       DIR_CONFIG = "ws-config"
@@ -18,6 +20,7 @@ module Wsman
 
       def initialize(@config : Wsman::ConfigManager, @site_name : String)
         @site_root = File.join(@config.web_root_dir, site_name)
+        @skip_solr = false
         prepare_dirs
         if File.exists?(File.join(subdir(DIR_CONFIG), SITECONF_FILE))
           @siteconf = SiteConfig.from_yaml(File.read(File.join(subdir(DIR_CONFIG), SITECONF_FILE)))
@@ -162,6 +165,7 @@ module Wsman
           "php_version" => @siteconf.php_version,
           "extra_hosts" => @siteconf.full_hosts(@site_name),
           "site_root" => File.join("htdocs", @siteconf.site_root || ""),
+          "solr_enabled" => !skip_solr,
           "solr_image" => @config.solr_image,
           "solr_version" => @siteconf.solr_version,
           "solr_version_name" => @config.solr_version_name(@siteconf.solr_version),
