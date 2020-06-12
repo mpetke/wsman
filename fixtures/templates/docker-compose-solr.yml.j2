@@ -5,6 +5,7 @@ services:
     image: "{{ solr_image }}:{{ solr_version }}"
     volumes:
       - /data/solr_instances/{{ solr_version_name }}/cores/:/var/solr/data
+      - /data/solr_instances/{{ solr_version_name }}/cores/:/opt/solr/server/solr/mycores
     networks:
       {{ container_network }}:
         ipv4_address: {{ solr_container_ip }}
