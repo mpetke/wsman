@@ -17,7 +17,7 @@ RUN echo '@edge http://dl-cdn.alpinelinux.org/alpine/edge/community' >>/etc/apk/
         openssl-dev \
         pcre-dev \
         readline-dev \
-        shards@edge \
+        shards \
         sqlite \
         sqlite-dev \
         sqlite-libs \
