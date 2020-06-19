@@ -19,11 +19,13 @@ You might want to statically build it in some cases, for example when you're bui
 With podman:
 ```
 podman build --tag=wsman-build .
+podman run --rm -it -v $PWD:/app -w /app wsman-build shards install
 podman run --rm -it -v $PWD:/app -w /app wsman-build crystal build --static --release -o wsman src/cli.cr
 ```  
 or with docker:  
 ```
 docker build --tag=wsman-build .
+docker run --rm -it -v $PWD:/app -w /app wsman-build shards install
 docker run --rm -it -v $PWD:/app -w /app wsman-build crystal build --static --release -o wsman src/cli.cr
 ```
 
