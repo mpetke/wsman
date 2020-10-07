@@ -354,6 +354,7 @@ module Wsman
       cores_path = solr_cores_path_by_version(solr_version)
       core_conf_path = File.join(cores_path, corename)
       Dir.mkdir_p(core_conf_path)
+      Wsman::Util.cmd("rm", ["-rf", File.join(core_conf_path, "conf")])
       Wsman::Util.cmd("cp", ["-rp", solr_core_config_dir, core_conf_path])
       File.write(File.join(core_conf_path, "core.properties"), "name=#{corename}")
       Dir["#{cores_path}/**/*"].each do |path|

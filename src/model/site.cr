@@ -170,7 +170,8 @@ module Wsman
           "solr_version" => @siteconf.solr_version,
           "solr_version_name" => @config.solr_version_name(@siteconf.solr_version),
           "solr_container_ip" => @config.container_ip(@siteconf.solr_version, "solr_instances"),
-          "solr_cores" => @config.get_solr_cores_from_db(@site_name)
+          "solr_cores" => @config.get_solr_cores_from_db(@site_name),
+          "solr_data_path" => @config.solr_data_path
         }
       end
     end

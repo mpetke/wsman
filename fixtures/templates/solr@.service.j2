@@ -5,7 +5,7 @@ After=docker.service
 
 [Service]
 Restart=always
-WorkingDirectory=/data/solr_instances/%i
+WorkingDirectory={{ solr_data_path }}/%i
 
 # Remove old containers, images and volumes
 ExecStartPre=/usr/local/bin/docker-compose down -v
