@@ -82,14 +82,7 @@ module Wsman
           end
         end
         setup_solr(site)
-        new_env = site.render_site_env
-        if @config.env_changed?(site_name, new_env)
-          @log.info("  Writing site environment to #{site.env_file}...")
-          @config.deploy_env(site_name, new_env)
-          @log.info("  Adding #{site.env_file} to #{@config.docker_compose_filename}...")
-          site.save_dcompose
-          restart_service = true
-        end
+        restart_service = setup_env(site)
         @log.info("  Enabling systemd service for the site runtime container...")
         if @systemd.site_enable(site_name)
           @log.info("  The site container has been enabled.")
@@ -125,6 +118,19 @@ module Wsman
       @nginx.deploy_site_config(site_name, site.render_nginx)
       @log.info("  Deploying awslogs config #{@awslogs.site_config_path(site_name)}...")
       @awslogs.deploy_site_config(site_name, site.render_awslogs)
+    end
+
+    def setup_env(site)
+      new_env = site.render_site_env
+      restart_service = false
+      if @config.env_changed?(site.site_name, new_env)
+        @log.info("  Writing site environment to #{site.env_file}...")
+        @config.deploy_env(site.site_name, new_env)
+        @log.info("  Adding #{site.env_file} to #{@config.docker_compose_filename}...")
+        site.save_dcompose
+        restart_service = true
+      end
+      restart_service
     end
 
     def setup_solr(site)
@@ -186,6 +192,15 @@ module Wsman
         end
       else
         @log.info("  Solr core install skipped.")
+      end
+      restart_site_service = setup_env(site)
+      if restart_site_service
+        @log.info("  Solr config changed, restarting systemd service for the site runtime container...")
+        if @systemd.site_restart(site_name)
+          @log.info("  The site container has been restarted.")
+        else
+          @log.error("  Error restarting site container!")
+        end
       end
     end
 
